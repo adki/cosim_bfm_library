@@ -1,0 +1,36 @@
+INSTALL.txt
+
+I. For DPI using Xilinx Vivado XSIM
+
+   * Xilinx Vivado should be installed
+     - Environment variable "XILINX_VIVADO" should be defined
+     - "xelab" and "xsim" should be accessable through "PATH".
+
+   $ cd lib_bfm
+   $ make -f Makefile.xsim
+   $ make -f Makefile.xsim install
+
+II. For VPI using icarus verilog
+
+   * icarus verilog should be installed
+
+   $ cd lib_bfm
+   $ make -f Makefile.iverilog
+   $ make -f Makefile.iverilog install
+
+III. To verify the installation using C program
+
+   $ cd verification/test_axi_dpi_vpi/sw
+   $ make run_dpi
+     or
+   $ make run_vpi
+
+IV. To verify the installation using Python
+
+   $ cd verification/test_axi_dpi_vpi/python
+   $ make run_dpi
+     or
+   $ make run_vpi
+
+Have a fun.
+Ando.

@@ -1,0 +1,66 @@
+#----------------------------------------------------------------------------
+# Copyright (c) 2021 Ando Ki.
+# All rights are reserved by Ando Ki.
+#----------------------------------------------------------------------------
+# Makefile
+#------------------------------------------------------------------------
+SHELL	= /bin/sh
+#------------------------------------------------------------------------
+IPC_LIB	= cosim_ipc
+SRCS	= cosim_ipc.c
+OBJS	= $(SRCS:.c=.o)
+#------------------------------------------------------------------------
+ifndef OBJECTDIR
+  OBJECTDIR = obj
+endif
+ifeq (${wildcard $(OBJECTDIR)},)
+  DUMMY := ${shell mkdir $(OBJECTDIR)}
+endif
+#------------------------------------------------------------------------
+vpath %.h	src
+vpath %.c	src
+#------------------------------------------------------------------------
+GXX             = gcc
+#------------------------------------------------------------------------
+INCDIRS		= -Isrc
+C_USER_DEFS = -DWIN32
+CFLAGS      = -g -O0 -Werror $(C_USER_DEFS) $(INCDIRS)
+LDFLAGS     = -O0 -shared
+LDLIBS      =
+#------------------------------------------------------------------------
+.PHONY: all
+all: pre $(IPC_LIB).dll
+
+pre:
+	if [ -f compile.log ]; then /bin/rm -f compile.log; fi
+#------------------------------------------------------------------------
+$(OBJECTDIR)/%.o: %.c
+	$(GXX) -c $(CFLAGS) $< -o $@
+
+#------------------------------------------------------------------------
+$(IPC_LIB).dll: $(addprefix $(OBJECTDIR)/,$(OBJS))
+	ar cru $(IPC_LIB).dll $(addprefix $(OBJECTDIR)/,$(OBJS))
+	ranlib $(IPC_LIB).dll
+
+#------------------------------------------------------------------------
+.PHONY: clean
+clean:
+	rm -rf $(OBJECTDIR)
+	rm -f  *.log
+	rm -f  *.o
+	rm -f *stackdump
+	rm -f *.exe.core
+	rm -f transcript compile.log
+
+.PHONY: cleanup
+cleanup: clean
+	rm -f $(IPC_LIB).dll lib$(IPC_LIB).a
+
+.PHONY: clobber
+clobber: cleanup
+
+#----------------------------------------------------------------------------
+# Revision history
+#
+# 2021.07.01: Started by Ando Ki (andoki@gmail.com)
+#----------------------------------------------------------------------------

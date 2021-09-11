@@ -1,0 +1,201 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2021 by Ando Ki.
+# All rights are reserved by Ando Ki.
+#-------------------------------------------------------------------------------
+# Makefile
+#-------------------------------------------------------------------------------
+SHELL    = /bin/sh
+MAKEFILE = Makefile
+#-------------------------------------------------------------------------------
+ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all"))
+    ifeq (, $(shell which iverilog))
+       $(error iverilog not found.)
+    endif
+endif
+#-------------------------------------------------------------------------------
+DIR_BFM     = .
+DIR_C       = ${DIR_BFM}/c
+DIR_VERILOG = ${DIR_BFM}/verilog
+DIR_IPC     = ../lib_ipc
+LIB_BFM     = cosim_bfm
+LIB_VPI_BFM = cosim_vpi_bfm
+#-------------------------------------------------------------------------------
+DIR_OBJ   = obj
+DUMMY    := $(shell [ -d $(DIR_OBJ) ] || mkdir $(DIR_OBJ) )
+#-------------------------------------------------------------------------------
+.PHONY: all
+all: compile prepare_defines compile_link
+
+compile_link:
+	for F in ${DIR_BFM}/c/cosim_bfm_vpi.c ${DIR_IPC}/src/cosim_ipc.c; do\
+		gcc -c -DRIGOR -DCOSIM_VPI -Diverilog -fPIC\
+			-Ic -I$(DIR_IPC)/src -I/usr/local/include/iverilog\
+			$$F -o $(DIR_OBJ)/$$(basename $$F .c).o;\
+	done
+	gcc -shared -o $(LIB_VPI_BFM).vpi\
+		${DIR_OBJ}/cosim_bfm_vpi.o\
+		${DIR_OBJ}/cosim_ipc.o\
+		-L/usr/local/lib -lvpi
+
+prepare_defines:
+	sed -e 's/^#define/`define/'\
+		-e 's/^#if/`if/' -e 's/^#endif/`endif/'\
+		-e 's/0x/\x27h/g'\
+		c/cosim_bfm_defines.h > verilog/cosim_bfm_defines.vh
+
+#-------------------------------------------------------------------------------
+INCS        := -Ic -I$(DIR_IPC)/src -I$(XILINX_VIVADO)/data/xsim/include
+SRCS        := $(DIR_BFM)/c/cosim_bfm_api.c\
+               $(DIR_IPC)/src/cosim_ipc.c
+OBJS        := $(shell echo $(notdir $(SRCS)) | sed -e 's/\.c/\.o/g')
+TARGET_LIBS := lib$(LIB_BFM).a lib$(LIB_BFM).so
+
+compile:
+	echo $(OBJS)
+	for F in $(SRCS); do\
+		gcc -c -m64 -fPIC -DRIGOR -Dxsim $(INCS) $$F -o $(DIR_OBJ)/$$(basename $$F .c).o;\
+	done
+	gcc -shared -o lib$(LIB_BFM).so $(addprefix $(DIR_OBJ)/,$(OBJS))
+	ar crUu lib$(LIB_BFM).a $(addprefix $(DIR_OBJ)/,$(OBJS))
+	ranlib lib$(LIB_BFM).a
+
+#-------------------------------------------------------------------------------
+PLATFORM            = $(shell uname -s | tr '[:upper:]' '[:lower:]')
+MACHINE             = $(shell uname -m)
+DIR_INSTALL        ?= ..
+DIR_INSTALL_INC     = $(DIR_INSTALL)/include
+DIR_INSTALL_LIB     = $(DIR_INSTALL)/lib/iverilog/${PLATFORM}_${MACHINE}
+DIR_INSTALL_BFMS    = $(DIR_INSTALL_INC)/verilog
+DIR_INSTALL_PYTHON  = $(DIR_INSTALL_INC)/python
+TARGET_HDRS         = cosim_bfm_api.h
+TARGET_VPI_LIBS     = ${LIB_VPI_BFM}.vpi
+TARGET_BFMS         = cosim_bfm_axi_core.v\
+                      cosim_bfm_axi_dpi.sv\
+                      cosim_bfm_axi_tasks.v\
+                      cosim_bfm_axi_vpi.v\
+                      cosim_bfm_defines.vh
+TARGET_PYTHON       = cosim_bfm.py __init__.py
+
+.PHONY: install
+install: install_header install_libs install_bfms install_python
+
+install_header:
+	@for F in $(addprefix c/,$(TARGET_HDRS)); do\
+		if [ ! -f $$F ] ; then \
+			echo "Not found $$F";\
+			exit 1;\
+		fi;\
+	done
+	@if [ ! -d ${DIR_INSTALL_INC} ]; then mkdir -p ${DIR_INSTALL_INC}; fi
+	@install $(addprefix c/,$(TARGET_HDRS)) $(DIR_INSTALL_INC) > /dev/null 2>&1
+	@if [ $$? -eq 0 ]; then\
+	        echo "Success on installing $(addprefix $(DIR_INSTALL_INC)/,$(TARGET_HDRS)).";\
+	else\
+	        echo "Failed to install $(addprefix $(DIR_INSTALL_INC)/,$(TARGET_HDRS)).";\
+		exit 1;\
+	fi
+
+install_libs:
+	@if [ -f $(DIR_INSTALL_LIB)/version.txt ]; then /bin/rm -f $(DIR_INSTALL_LIB)/version.txt; fi
+	@for F in $(TARGET_LIBS); do\
+		if [ ! -f $$F ] ; then \
+			echo "Not found $$F";\
+			exit 1;\
+		fi;\
+	done
+	@if [ ! -d ${DIR_INSTALL_LIB} ]; then mkdir -p ${DIR_INSTALL_LIB}; fi
+	@install $(TARGET_LIBS) $(DIR_INSTALL_LIB) > /dev/null 2>&1
+	@if [ $$? -eq 0 ]; then\
+	        gcc --version | head -n1 > $(DIR_INSTALL_LIB)/version.txt;\
+	        rm -f $(TARGET_LIBS);\
+	        echo "Success on installing $(DIR_INSTALL_LIB)/{$(TARGET_LIBS)}.";\
+	else\
+	        echo "Failed to install $(DIR_INSTALL_LIB)/{$(TARGET_LIB)}.";\
+		exit 1;\
+	fi
+	@for F in $(TARGET_VPI_LIBS); do\
+		if [ ! -f $$F ] ; then \
+			echo "Not found $$F";\
+			exit 1;\
+		fi;\
+	done
+	@if [ ! -d ${DIR_INSTALL_LIB} ]; then mkdir -p ${DIR_INSTALL_LIB}; fi
+	@install $(TARGET_VPI_LIBS) $(DIR_INSTALL_LIB) > /dev/null 2>&1
+	@if [ $$? -eq 0 ]; then\
+	        iverilog -V 2> /dev/null | head -n1 >> $(DIR_INSTALL_LIB)/version.txt;\
+	        rm -f $(TARGET_VPI_LIBS);\
+	        echo "Success on installing $(DIR_INSTALL_LIB)/{$(TARGET_VPI_LIBS)}.";\
+	else\
+	        echo "Failed to install $(DIR_INSTALL_LIB)/{$(TARGET_VPI_LIB)}.";\
+		exit 1;\
+	fi
+
+install_bfms:
+	@for F in $(addprefix verilog/,$(TARGET_BFMS)); do\
+		if [ ! -f $$F ] ; then \
+				echo "Not found $$F";\
+				exit 1;\
+		fi;\
+	done
+	@if [ ! -d ${DIR_INSTALL_BFMS} ]; then mkdir -p ${DIR_INSTALL_BFMS}; fi
+	@install $(addprefix verilog/,$(TARGET_BFMS)) $(DIR_INSTALL_BFMS) > /dev/null 2>&1
+	@if [ $$? -eq 0 ]; then\
+	        echo "Success on installing $(addprefix $(DIR_INSTALL_BFMS)/,$(TARGET_BFMS)).";\
+	else\
+	        echo "Failed to install $(addprefix $(DIR_INSTALL_BFMS)/,$(TARGET_BFMS)).";\
+		exit 1;\
+	fi
+
+install_python:
+	@for F in $(addprefix python/,$(TARGET_PYTHON)); do\
+		if [ ! -f $$F ] ; then \
+				echo "Not found $$F";\
+				exit 1;\
+		fi;\
+	done
+	@if [ ! -d ${DIR_INSTALL_PYTHON} ]; then mkdir -p ${DIR_INSTALL_PYTHON}; fi
+	@install $(addprefix python/,$(TARGET_PYTHON)) $(DIR_INSTALL_PYTHON) > /dev/null 2>&1
+	@if [ $$? -eq 0 ]; then\
+	        echo "Success on installing $(addprefix $(DIR_INSTALL_PYTHON)/,$(TARGET_PYTHON)).";\
+	else\
+	        echo "Failed to install $(addprefix $(DIR_INSTALL_PYTHON)/,$(TARGET_PYTHON)).";\
+		exit 1;\
+	fi
+
+#-------------------------------------------------------------------------------
+.PHONY: clean
+clean:
+	/bin/rm -rf $(DIR_OBJ)
+	/bin/rm -f  *.log
+	/bin/rm -f  *.o
+	/bin/rm -f  *stackdump
+	/bin/rm -f  *.exe.core
+	/bin/rm -f  transcript
+	/bin/rm -fr work
+	/bin/rm -f  xsc.log  xsc.pb
+
+.PHONY: cleanup clobber
+cleanup clobber: clean
+	/bin/rm -f $(TARGET_LIBS)
+	/bin/rm -f $(LIB_VPI_BFM).vpi
+	/bin/rm -fr $(DIR_INSTALL_LIB)
+
+.PHONY: cleanupall distclean
+cleanupall distclean: cleanup
+	/bin/rm -f   verilog/cosim_bfm_defines.vh
+	/bin/rm -fr  $(DIR_INSTALL)/lib
+ifneq ( $(abspath python), $(abspath $(DIR_INSTALL_PYTHON)) )
+	/bin/rm -fr $(DIR_INSTALL_PYTHON)
+endif
+ifneq ( $(abspath verilog), $(abspath $(DIR_INSTALL_BFMS)) )
+	/bin/rm -fr $(DIR_INSTALL_BFMS)
+endif
+ifneq ( $(abspath c), $(abspath $(DIR_INSTALL_INC)) )
+	/bin/rm -fr $(DIR_INSTALL_INC)
+endif
+
+#-------------------------------------------------------------------------------
+# Revision history
+#
+# 2021.07.01: Started by Ando Ki (andoki@gmail.com)
+#-------------------------------------------------------------------------------

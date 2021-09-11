@@ -1,0 +1,4 @@
+hw/sim/questasim
+sw/obj
+sw/compile.log
+sw/test

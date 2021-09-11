@@ -1,0 +1,6 @@
+sv work \
+      ./sim_define.v\
+   -i ../../design/verilog\
+      ../../design/verilog/top.v\
+      ../../design/verilog/mem_axi_beh.v\
+   -i $DIR_DPI_BFM $DPI_BFM
