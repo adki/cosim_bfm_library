@@ -508,7 +508,7 @@ $cosim_ipc_put( cid
 ---
 # 8. Where to get more information<a name="where_to_get"></a>
 Source code is available from Ando's GitHub:
-* https://github.com/adki/cosim_bfm_axi
+* https://github.com/adki/cosim_bfm_library
 
 Lecture materials and codes of DPI are available from Ando's GitHub:
 * Tutorial on DPI (Direct Programming Interface): https://github.com/adki/DPI_Tutorial
