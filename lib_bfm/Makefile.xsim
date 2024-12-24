@@ -28,11 +28,11 @@ DIR_OBJ   = obj
 DUMMY    := $(shell [ -d $(DIR_OBJ) ] || mkdir $(DIR_OBJ) )
 #-------------------------------------------------------------------------------
 .PHONY: all
-allx: compile prepare_defines prepare_header compile_link
+all: compile prepare_defines prepare_header compile_link
 
 compile_link:
 	xsc -v -compile -work ${DIR_OBJ}\
-		--additional_option "-DRIGOR -DCOSIM_DPI -Dxsim -Ic -I$(DIR_IPC)/src"\
+		--gcc_compile_options "-DRIGOR -DCOSIM_DPI -Dxsim -Ic -I$(DIR_IPC)/src"\
 		${DIR_BFM}/c/cosim_bfm_dpi.c\
 		${DIR_IPC}/src/cosim_ipc.c
 	xsc -v -work ${DIR_OBJ} -shared -o ${LIB_DPI_BFM}.so
@@ -178,6 +178,7 @@ clean:
 	/bin/rm -f  *.exe.core
 	/bin/rm -f  transcript
 	/bin/rm -fr work
+	/bin/rm -f  xelab.log  xelab.pb
 	/bin/rm -f  xsc.log  xsc.pb
 	/bin/rm -fr xsim.dir/
 

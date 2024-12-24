@@ -88,11 +88,11 @@ begin
           //end
           //dataR[idx] = (dataR[idx]&~maskT)|(M_RDATA&maskT);
           if (tid!=M_RID) begin
-             $display($time,,"%m Error tid/RID mis-match for read-data-channel", tid, M_RID);
+             $display("%0t %m Error tid/RID mis-match for read-data-channel.", $time, tid, M_RID);
           end
           if (idx==leng-1) begin
              if (M_RLAST==1'b0) begin
-                 $display($time,,"%m Error RLAST expected for read-data-channel");
+                 $display("%0t %m Error RLAST expected for read-data-channel.", $time);
              end
           end else begin
               @ (negedge ACLK);
@@ -182,17 +182,17 @@ begin
      @ (posedge ACLK);
      while (M_BVALID==1'b0) @ (posedge ACLK);
      if (tid!=M_BID) begin
-        $display($time,,"%m Error tid mis-match for write-resp-channel 0x%x/0x%x", tid, M_BID);
+        $display("%0t %m Error tid mis-match for write-resp-channel 0x%x/0x%x.", $time, tid, M_BID);
      end else begin
          case (M_BRESP)
          `ifdef DEBUG
          2'b00: begin
-                $display($time,,"%m OK response for write-resp-channel: OKAY");
+                $display("%0t %m OK response for write-resp-channel: OKAY.", $time);
                 end
          `endif
-         2'b01: $display($time,,"%m OK response for write-resp-channel: EXOKAY");
-         2'b10: $display($time,,"%m Error response for write-resp-channel: SLVERR");
-         2'b11: $display($time,,"%m Error response for write-resp-channel: DECERR");
+         2'b01: $display("%0t %m OK response for write-resp-channel: EXOKAY.", $time);
+         2'b10: $display("%0t %m Error response for write-resp-channel: SLVERR.", $time);
+         2'b11: $display("%0t %m Error response for write-resp-channel: DECERR.", $time);
          endcase
      end
      M_BREADY <= #1 'b0;
@@ -259,7 +259,7 @@ begin
            end
     2'b10: begin // wrap
            if ((addr%size)!=0) begin
-              $display($time,,"%m wrap-burst not aligned");
+              $display("%0t %m wrap-burst not aligned.", $time);
               axi_get_next_addr = addr;
            end else begin
                offset = addr%AXI_WIDTH_DS;
@@ -270,7 +270,7 @@ begin
                end
            end
            end
-    default: $display($time,,"%m Error un-defined burst-type: %2b", burst);
+    default: $display("%0t %m Error un-defined burst-type: %2b", $time, burst);
     endcase
 end
 endfunction
@@ -296,16 +296,12 @@ begin
     for (idx=addr%AXI_WIDTH_DS; (idx<AXI_WIDTH_DS)&&(ids<size); idx=idx+1) begin
          idz = addr+(idx-offset)-saddr;
          data[idx] = axi_dataWB[idz];
-//$display($time,,"%m sa=%04x ad=%04x idx=%03d idz=%03d", saddr, addr, idx, idz);
          ids = ids + 1;
     end
     axi_get_data = 0;
     for (idy=0; idy<AXI_WIDTH_DS; idy=idy+1) begin
          axi_get_data = axi_get_data|(data[idy]<<(8*idy));
     end
-    //for (idy=AXI_WIDTH_DS-1; idy>=0; idy=idy-1) begin
-    //     axi_get_data = (axi_get_data<<8)|data[idy];
-    //end
 end
 endfunction
 //------------------------------------------------------------------------------

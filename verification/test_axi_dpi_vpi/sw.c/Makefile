@@ -5,17 +5,19 @@
 SHELL    = /bin/sh
 MAKEFILE = Makefile
 #-------------------------------------------------------------------------------
-ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all"))
+ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "sw" "hw" "run" "cosim"))
     ifndef COSIM_HOME
-       $(warning COSIM_HOME environment variable not defined.)
        export COSIM_HOME = $(abspath ../../..)
+       $(warning COSIM_HOME environment variable updated.)
     endif
     PLATFORM  = $(shell uname -s | tr '[:upper:]' '[:lower:]')
     MACHINE   = $(shell uname -m)
     export DIR_COSIM_ROOT = $(COSIM_HOME)
     export DIR_COSIM_INC  = $(DIR_COSIM_ROOT)/include
     export SIMULATOR ?= xsim
+   #export SIMULATOR ?= iverilog
     export DIR_COSIM_LIB  = $(DIR_COSIM_ROOT)/lib/$(SIMULATOR)/$(PLATFORM)_$(MACHINE)
+    export DIR_SIM    = ../hw/sim/$(SIMULATOR)
 endif
 #-------------------------------------------------------------------------------
 OBJECTDIR = obj
@@ -64,37 +66,61 @@ $(OBJECTDIR)/%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@ 2>&1 | tee -a compile.log
 #------------------------------------------------------------------------
 .PHONY: all
-all: pre $(TARGET)
+all:
+
+.PHONY: sw
+sw: pre $(TARGET)
 
 $(TARGET): $(addprefix $(OBJECTDIR)/,$(OBJS))
 	$(CC) -o $(TARGET) $(LDFLAGS) $(addprefix $(OBJECTDIR)/,$(OBJS))\
 		$(LDLIBS)
 
+.PHONY: pre
 pre:
 	if [ -f compile.log ]; then /bin/rm -f compile.log; fi
 
+.PHONY: hw
+hw:
+	make -C $(DIR_SIM) compile
+
+DBUS = $(shell dbus-launch)
+TERM=GNOME
+#TERM=XTERM
+
+.PHONY: run
 run:
-	./$(TARGET) --cid=0 --verbose=0
+	./test
 
-run_dpi:
-	@if [ ! -x "`which xelab 2>/dev/null`" ]; then\
-		echo "xelab not found."; exit 1;\
+.PHONY: cosim
+cosim:
+        ifeq ("$(SIMULATOR)","xsim")
+		@if [ ! -x "`which xelab 2>/dev/null`" ]; then\
+			echo "xelab not found."; exit 1;\
+		fi
+        else
+		@if [ ! -x "`which iverilog 2>/dev/null`" ]; then\
+			echo "iverilog not found."; exit 1;\
+		fi
+        endif
+	@if [ ! -f test ]; then\
+		echo "Need test."; exit 1;\
 	fi
-	if [ ! -f $(TARGET) ]; then make; fi
-	gnome-terminal --window -- bash -c "make -C ../hw/sim/xsim; bash"
-	make run
-
-run_vpi:
-	@if [ ! -x "`which iverilog 2>/dev/null`" ]; then\
-		echo "iverilog not found."; exit 1;\
-	fi
-	if [ ! -f $(TARGET) ]; then make; fi
-	gnome-terminal --window -- bash -c "make -C ../hw/sim/iverilog; bash"
-	make run
+	export $(DBUS) > /dev/null 2>&1
+        ifeq ("$(TERM)","XTERM")
+		xterm -T "client" -fg 'black' -bg 'white' -fa 'Monospace' -fs 10\
+			-e /bin/bash -l -c\
+			"cd $(DIR_SIM); make sim; bash"&
+		./test
+        else
+		gnome-terminal --title="client" --window -- bash -c\
+			"cd $(DIR_SIM); make sim; bash"
+		./test
+        endif
 
 #------------------------------------------------------------------------
 .PHONY: clean
 clean:
+	rm -f $(TARGET) $(TARGET).exe
 	rm -rf $(OBJECTDIR)
 	rm -f  *.log
 	rm -f  *.o
@@ -105,7 +131,6 @@ clean:
 
 .PHONY: cleanup clobber
 cleanup clobber: clean
-	rm -f $(TARGET) $(TARGET).exe
 
 .PHONY: cleanupall distclean
 cleanupall distclean: cleanup

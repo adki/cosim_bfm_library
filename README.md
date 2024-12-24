@@ -1,9 +1,15 @@
 # HW-SW Co-Simulation Library for AMBA AXI BFM using DPI/VPI
-*Cosim BFM library* is a package to provide HW-SW co-simulation
+*Cosim BFM library* is a package to provide ***HW-SW transaction-level co-simulation***
 between the HDL (Hardware Description Language) simulator and the host program,
 where BFM (Bus Functional Model
 or Bus Functional Module) generates bus transaction by interacting
 with the host program in C or Python.
+
+> Highlights
+>> - Transaction-level co-simulation
+>> - VPI and DPI are supported
+>> - C/C++ and Python are supported
+>> - Icarus Verilog and Xilinx xsim are tested
 
 |![Co-simulation using BFM](doc/images/cosimulation_bfm.png)|
 |:---:|
@@ -34,7 +40,7 @@ with the host program in C or Python.
 ---
 
 ### License<a name="license"></a>
-This is licensed with the 2-clause BSD license to make the program and library useful in open and closed source products independent of their licensing scheme.
+This is licensed with the 2-clause BSD license to make the program and library useful in open and closed source projects independent of their licensing scheme.
 
 ### Prerequisites<a name="prerequisites"></a>
 This program requires followings.
@@ -56,13 +62,14 @@ the C or Python program.
 
 Make sure that following two environment variables should be defined properly.
 
- * **COSIM_HOME** environment variable is set to the directory
-   where co-simulation library (libcosim_bfm.a or libcosim_bfm.so) is installed.
- * **PYTHONPATH** environment variable is set to the directory
-   where co-simulation Python code (cosim_bfm.py) resides.
+ > - **COSIM_HOME** environment variable is set to the directory
+ > where co-simulation library (libcosim_bfm.a or libcosim_bfm.so) is installed.
+ > - **PYTHONPATH** environment variable is set to the directory
+ > where co-simulation Python code (cosim_bfm.py) resides.
+ > It is not required if Python is not used for SW-part.
 
 Add following code in the bash startup file, say *.bashrc* and run 'set_cosim' before you use this library,
-where **COSIM_HOME** should be the directory path this library resides.
+where **COSIM_HOME** should be the directory path where this library resides.
 
 <details><summary>Click to expand example of .bashrc</summary>
 
@@ -96,31 +103,41 @@ Xilinx Vivado simulator should be installed and available.
 #### 1.1.2 running co-simulation
 
    3) go to example directory\
-      *$ cd verification/test_axi_dpi_vpi*
+      *$ cd verification/test_axi_dpi_vpi*\
+      . Make sure that 'xsim' is found in the PATH environment variable.\
+      . Make sure 'SIMULATOR' macro in 'Makefile' should be 'xsim'.
    4) prepare two command windows and do as follows
       | HW-side          | SW-side       |
       | :---             | :---          |
-      | $ cd hw/sim/xsim | $ cd sw       |
-      | $ make           | $ make        |
-      |                  | $ make run    |
+      | $ cd hw/sim/xsim | $ cd sw.c     |
+      | $ make compile   | $ make sw     |
+      | $ make sim       | $ make SIMULATOR=xsim run |
 
    or
    4) simply run as follows\
-      *$ make run_dpi*
+      *$ cd sw.c*\
+      *$ make SIMULATOR=xsim hw*\
+      *$ make SIMULATOR=xsim sw*\
+      *$ make SIMULATOR=xsim cosim*
 
 #### 1.1.2 running co-simulation through Python
 
    3) go to example directory\
-      *$ cd verification/test_axi_dpi_vpi*
+      *$ cd verification/test_axi_dpi_vpi*\
+      . Make sure that 'xsim' is found in the PATH environment variable.\
+      . Make sure 'SIMULATOR' macro in 'Makefile' should be 'xsim'.
    4) prepare two command windows and do as follows (use Python3)
-      | HW-side          | Python-side   |
-      | :---             | :---          |
-      | $ cd hw/sim/xsim | $ cd python   |
-      | $ make           | $ make run    |
+      | HW-side          | Python-side    |
+      | :---             | :---           |
+      | $ cd hw/sim/xsim | $ cd sw.python |
+      | $ make compile   |                |
+      | $ make sim       | $ make SIMULATOR=xsim run |
 
    or
    4) simply run as follows\
-      *$ make run_dpi*
+      *$ cd sw.python*\
+      *$ make SIMULATOR=xsim hw*\
+      *$ make SIMULATOR=xsim cosim*
 
    > Sometimes there may occur "ERROR: data buffer size mis-match" at the begining of co-simulation
    > due to un-expected messages. To deal with this, terminate all related program and re-invoke the program
@@ -144,31 +161,38 @@ Icarus Verilog simulator should be installed and available.
 #### 1.2.1 running co-simulation
 
    3) go to example directory\
-      *$ cd verification/test_axi_dpi_vpi*
+      *$ cd verification/test_axi_dpi_vpi*\
+      . Make sure that 'iverilog' is found in the PATH environment variable.\
+      . Make sure 'SIMULATOR' macro in 'Makefile' should be 'iverilog'.
    4) prepare two command windows and do as follows
-      | HW-side          | SW-side       |
-      | :---             | :---          |
-      | $ cd hw/sim/xsim | $ cd sw       |
-      | $ make           | $ make        |
-      |                  | $ make SIMULATOR=iverilog run |
+      | HW-side              | SW-side       |
+      | :---                 | :---          |
+      | $ cd hw/sim/iverilog | $ cd sw       |
+      | $ make               | $ make        |
+      |                      | $ make SIMULATOR=iverilog run |
 
    or
    4) simply run as follows\
-      *$ make run_vpi*
+      *$ make SIMULATOR=iverilog hw*\
+      *$ make SIMULATOR=iverilog sw*\
+      *$ make SIMULATOR=iverilog cosim*
 
 #### 1.2.2 running co-simulation through Python
 
    3) go to example directory\
-      *$ cd verification/test_axi_dpi_vpi*
+      *$ cd verification/test_axi_dpi_vpi*\
+      . Make sure that 'iverilog' is found in the PATH environment variable.\
+      . Make sure 'SIMULATOR' macro in 'Makefile' should be 'iverilog'.
    4) prepare two command windows and do as follows (use Python3)
-      | HW-side          | Python-side   |
-      | :---             | :---          |
-      | $ cd hw/sim/xsim | $ cd python   |
-      | $ make           | $ make SIMULATOR=iverilog run |
+      | HW-side              | Python-side   |
+      | :---                 | :---          |
+      | $ cd hw/sim/iverilog | $ cd python   |
+      | $ make               | $ make SIMULATOR=iverilog run |
 
    or
    4) simply run as follows\
-      *$ make run_vpi*
+      *$ make SIMULATOR=iverilog hw*\
+      *$ make SIMULATOR=iverilog cosim*
 
    > Sometimes there may occur "ERROR: data buffer size mis-match" at the begining of co-simulation
    > due to un-expected messages. To deal with this, terminate all related program and re-invoke the program
@@ -525,11 +549,15 @@ The author has been giving open lecture on AMBA bus at following two institutes:
 # 9. Other things<a name="other_things"></a>
 
 ### Author(s)
-* **Ando Ki** - *Initial work* - <a href="http://www.future-ds.com" target="_blank">Future Design Systems</a>
+* **Ando Ki** - *Initial work* - <a href="http://www.future-ds.com" target="_blank">Future Design Systems</a> and <a href="https://www.kaist.ac.kr" target="_blank">KAIST.</a>
+
 
 ### Acknowledgments
 Thanks to all who gave me valuable feedback.
 
 ### Revision history<a name="revision_history"></a>
+* 2024.12.20: Updated to correct typo.
+* 2024.12.20: Updated to change names of directories.
+              verification/test_axi_dpi_vpi/{c,python} to verification/test_axi_dpi_vpi/{sw.c,sw.python}
 * 2021.08.01: Started by Ando Ki (andoki(at)gmail.com).
 ---

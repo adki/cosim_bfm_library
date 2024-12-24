@@ -5,7 +5,7 @@
 SHELL    = /bin/sh
 MAKEFILE = Makefile
 #-------------------------------------------------------------------------------
-ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "run" "run_dpi" "run_vpi"))
+ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "hw" "run" "cosim"))
     ifndef COSIM_HOME
        $(warning COSIM_HOME environment variable not defined.)
        export COSIM_HOME = $(abspath ../../..)
@@ -13,13 +13,14 @@ ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "run" "run_dpi" "ru
     ifneq ($(findstring "include/python",$(PYTHONPATH)),"include/python")
        $(warning PYTHONPATH updated.)
        ifdef PYTHONPATH
-          PYTHONPATH := $(COSIM_HOME)/include/python:$(PYTHONPATH)
+          export PYTHONPATH := $(COSIM_HOME)/include/python:$(PYTHONPATH)
        else
-          PYTHONPATH := $(COSIM_HOME)/include/python
+          export PYTHONPATH := $(COSIM_HOME)/include/python
        endif
     endif
-    DIR_XSIM := ../hw/sim/xsim
-    DIR_IVERILOG := ../hw/sim/iverilog
+    export SIMULATOR ?= xsim
+   #export SIMULATOR ?= iverilog
+    export DIR_SIM   := ../hw/sim/$(SIMULATOR)
 endif
 
 #-------------------------------------------------------------------------------
@@ -31,8 +32,40 @@ SIMULATOR ?= xsim
 .PHONY: all
 all:
 
+.PHONY: hw
+hw:
+	make -C $(DIR_SIM) compile
+
+DBUS = $(shell dbus-launch)
+TERM=GNOME
+#TERM=XTERM
+
+.PHONY: run
 run:
 	$(PYTHON) $(TARGET) --simulator=$(SIMULATOR) --cid=0 --verbose=0
+
+.PHONY: cosim
+cosim:
+        ifeq ("$(SIMULATOR)","xsim")
+		@if [ ! -x "`which xelab 2>/dev/null`" ]; then\
+			echo "xelab not found."; exit 1;\
+		fi
+        else
+		@if [ ! -x "`which iverilog 2>/dev/null`" ]; then\
+			echo "iverilog not found."; exit 1;\
+		fi
+        endif
+	export $(DBUS) > /dev/null 2>&1
+        ifeq ("$(TERM)","XTERM")
+		xterm -T "client" -fg 'black' -bg 'white' -fa 'Monospace' -fs 10\
+			-e /bin/bash -l -c\
+			"cd $(DIR_SIM); make sim; bash"&
+		$(PYTHON) $(TARGET) --simulator=$(SIMULATOR) --cid=0 --verbose=0
+        else
+		gnome-terminal --title="client" --window -- bash -c\
+			"cd $(DIR_SIM); make sim; bash"
+		$(PYTHON) $(TARGET) --simulator=$(SIMULATOR) --cid=0 --verbose=0
+        endif
 
 run_dpi dpi_run run_xsim xsim_run:
 	@if [ ! -x "`which xelab 2>/dev/null`" ]; then\

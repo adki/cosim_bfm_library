@@ -2,7 +2,7 @@
 SHELL    = /bin/sh
 MAKEFILE = Makefile
 #--------------------------------------------------------
-ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "elab" "sim"))
+ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "elab" "compile" "hw" "sim" "run"))
     ifeq (, $(shell which iverilog))
        $(error iverilog not found.)
     endif
@@ -24,9 +24,9 @@ ISIM	 = vvp
 TOP	  = top
 DIR_RTL   = ../../design/verilog
 #--------------------------------------------------------
-all: compile simulate
+all:
 
-compile:
+compile hw:
 	($(ILOG) -o $(TOP).vvp -s $(TOP)\
 		-I$(DIR_RTL)\
 		-I$(DIR_VPI_BFM)\
@@ -36,7 +36,7 @@ compile:
 		$(DIR_VPI_BFM)/cosim_bfm_axi_vpi.v\
 		|| exit -1) 2>&1 | tee compile.log
 
-simulate: compile
+sim run: compile
 	$(ISIM) -l vvp.log\
 		-M$(DIR_COSIM_ROOT) -mcosim_vpi_bfm\
 		$(TOP).vvp

@@ -2,7 +2,7 @@
 SHELL           = /bin/sh
 MAKEFILE        = Makefile
 #-------------------------------------------------------------------------------
-ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "elab" "sim"))
+ifeq ($(MAKECMDGOALS),$(findstring $(MAKECMDGOALS), "" "all" "elab" "compile" "hw" "sim" "run"))
     ifndef XILINX_VIVADO
        $(error XILINX_VIVADO environment variable not defined)
     else
@@ -27,9 +27,9 @@ export GUI        ?= 0
 export OPTIONS    ?= 
 
 #-------------------------------------------------------------------------------
-all: elab sim
+all:
 
-elab compile:
+elab compile hw:
 	xelab -prj xsim.prj -sv_root $(DIR_COSIM_ROOT) -sv_lib $(COSIM_LIB) -debug typical top -s top
 
 sim run:

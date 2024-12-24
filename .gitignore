@@ -12,6 +12,7 @@ Release.sh
 old
 lib
 include
+lib_cosimm
 
 #OS junk files
 [Tt]humbs.db
